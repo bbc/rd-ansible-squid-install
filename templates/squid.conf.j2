@@ -1,0 +1,40 @@
+### MANAGED BY {{ role_path|basename }} ANSIBLE ROLE ###
+
+# First set up our ACLs
+{% for key, value in combined_squid_acls.iteritems() %}
+{% for source in value.source %}
+acl {{ key }} {{ value.type }} {{ source }}
+{% endfor %}
+{% endfor %}
+
+# Then define what to do with these ACLs
+{% for key, value in combined_squid_acls.iteritems() %}
+{% if value.directive is defined %}{{ value.directive }} {{ key }} {% if value.additional_directive_acl is defined %}{% for extra_directives in value.additional_directive_acl %}{{ extra_directives }}{% if not loop.last %} {% endif %}{% endfor %}{% endif %}{% endif %}
+
+{% if value.directives is defined %}
+{% for directive in value.directives %}
+{{ directive }} {{ key }}
+{% endfor %}
+{% endif %}
+{% endfor %}
+
+# Then define the final directives without needing to create the ACL
+{% for directive in combined_squid_extra_acl_directive %}
+{{ directive.directive }} {% for acl in directive.acl %}{{ acl }}{% if not loop.last %} {% endif %}{% endfor %}
+
+{% endfor %}
+
+# Define listen ports
+{% for listen_address in squid_listen_addresses %}
+http_port {{ listen_address }}
+{% endfor %}
+
+## Defined configuration lines
+{% for line in squid_config_lines %}
+{{ line }}
+{% endfor %}
+
+## Default extra configuration lines
+{% for line in squid_default_config_lines %}
+{{ line }}
+{% endfor %}

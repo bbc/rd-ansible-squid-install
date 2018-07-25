@@ -1,0 +1,6 @@
+---
+# module: rd-ansible-squid-install/tasks
+# description: Install rd-ansible-squid-install onto an Ubuntu 16.xx server
+
+- include_tasks: install.yml
+- include_tasks: configure.yml

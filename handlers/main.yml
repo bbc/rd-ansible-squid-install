@@ -1,0 +1,39 @@
+---
+# name: rd-ansible-squid-install/handlers
+# description: All our handlers for rd-ansible-squid-install go in here
+
+- name: check squid config
+  command: squid -k parse
+  changed_when: false
+  listen: restart_squid
+
+- name: Make sure service has been stopped
+  systemd:
+    name: squid
+    state: stopped
+  listen: systemd_service_changed
+
+- name: Reload systemd configs
+  systemd:
+    daemon_reload: yes
+  listen: systemd_service_changed
+
+- name: Restart service
+  systemd:
+    name: squid
+    state: restarted
+    enabled: yes
+  listen:
+    - restart_squid
+    - systemd_service_changed
+
+- name: Wait for squid startup
+  command: curl "http://127.0.0.1:{{ squid_http_port }}"
+  args:
+    warn: no
+  register:
+    squid_test
+  until: squid_test.stderr.find('Connection refused') == -1
+  delay: 1
+  retries: 10
+  listen: restart_squid

@@ -1,0 +1,18 @@
+---
+# module: rd-ansible-squid-install/tasks/configure
+# description: Configure rd-ansible-squid-install
+
+- name: "Create a template in {{ squid_path }}"
+  template:
+    src: squid.conf.j2
+    dest: "{{ squid_path }}"
+  notify: restart_squid
+
+- name: Flush handlers so we can make sure Squid is enabled
+  meta: flush_handlers
+
+- name: Enable Squid - using command since the service and systemd command appear to not work correctly
+  command: systemctl enable squid
+  args:
+    warn: false
+  changed_when: false

@@ -1,0 +1,16 @@
+---
+# module: rd-ansible-squid-install/tasks/install
+# description: Install our required packages for rd-ansible-squid-install
+
+- name: Install all required packages for rd-ansible-squid-install
+  package:
+    name: "{{ item }}"
+    state: present
+    update_cache: yes
+  with_items: "{{ packages }}"
+
+- name: Install Squid Systemd service
+  copy:
+    src: squid.service
+    dest: "/etc/systemd/system/squid.service"
+  notify: systemd_service_changed

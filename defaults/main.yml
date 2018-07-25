@@ -1,0 +1,115 @@
+---
+# name: rd-ansible-squid-install/defaults
+# description: ALL our default variables for rd-ansible-squid-install go in here
+#------------------------------------------------------------------------------
+# Packages - All our required packages we need installing
+#--------------------------------------------------------------------------  ---
+
+# - pre-requisites -
+# Packages required for squid install
+packages:
+  - squid
+  - squidview
+  - curl
+
+# Squid config path
+squid_path: /etc/squid/squid.conf
+
+# Squid listen port
+squid_http_port: 8080
+
+# List of Squid listen addresses, default listen to all
+squid_listen_addresses: [ "0.0.0.0:{{ squid_http_port }}" ]
+
+# Extra lines added in to the squid config
+squid_config_lines:
+  - "cache_mem {{ (ansible_memtotal_mb | default(4000)/ 3) | int }} MB"
+  - minimum_object_size 0 bytes
+  - "maximum_object_size {{ (ansible_memtotal_mb | default(4000) / 75) | int }} MB"
+  - "maximum_object_size_in_memory {{ (ansible_memtotal_mb | default(4000) / 75) | int }} MB"
+  - cache_replacement_policy heap LFUDA
+
+# Squid ACLS - This is a list of ACLs and default directives ( allow or deny ) for those ACLs
+squid_acls:
+    localnet:
+        source: [ "172.16.0.0/12", "10.0.0.0/8", "192.168.0.0/16" ]
+        type: src
+        directive: "http_access allow"
+
+#squid_acls: {} # These are designed to be passed in as required
+# Assuming the following config:
+# squid_acls:
+#    safe_ports:
+#        source: [ 80,21 ]
+#        type: port
+#        directive: "http_access allow"
+#        additional_directive_acl: [ "!SSL_ports" ]
+#
+# Would generate the config
+#
+# acl safe_ports port 80
+# acl safe_ports port 21
+#
+# and then using the directive config
+#
+# http_access allow safe_ports
+#
+# additional_directive_acl is not required but anything in the list additional_directive_acl, would be appended to the end of the directive as follows:
+#
+# http_access allow safe_ports !SSL_ports
+#
+
+squid_default_acls:
+  safe_ports:
+    source: [ 80,21,443,70,210,"1025-65535",280,488,591,777 ]
+    type: port
+    directive: "http_access allow"
+  CONNECT:
+    type: method
+    source: [ CONNECT ]
+    directive: "http_access deny"
+    additional_directive_acl: [ "!SSL_ports" ]
+  ssl_ports:
+    source: [ 443 ]
+    type: port
+
+# Take the default ACL and mix with our defined ACL
+combined_squid_acls: "{{ squid_acls | combine(squid_default_acls) }}"
+
+# These are ACLs which likely already exist and are simply a way of specifying a directive without the need to create the ACL
+
+squid_extra_acl_directive:
+    - acl: [ localhost ]
+      directive: "http_access allow"
+
+#squid_extra_acl_directive: [] # These are designed to be passed in as required AND ARE ORDER SENSITIVE!
+
+# Assuming the following config:
+# squid_extra_acl_directive:
+#     - acl: [ manager, localhost ]
+#       directive: "http_access allow"
+#
+# Would generate the config
+#http_access allow localhost manager
+
+squid_default_extra_acl_directive:
+  - acl: [ manager, localhost ]
+    directive: "http_access allow"
+  - acl: [ all ]
+    directive: "http_access deny"
+
+# Take the default and combine with our extra defined
+combined_squid_extra_acl_directive: "{{ squid_extra_acl_directive + squid_default_extra_acl_directive }}"
+
+# Default lines appended to end of squid config
+squid_default_config_lines:
+  # Core dump path
+  - 'coredump_dir /var/spool/squid'
+  # cache refresh based on date
+  - 'refresh_all_ims on'
+  # cache match options
+  - 'refresh_pattern ^ftp:           1440    20%     10080'
+  - 'refresh_pattern ^gopher:        1440    0%      1440'
+  - 'refresh_pattern -i (/cgi-bin/|\?) 0     0%      0'
+  - 'refresh_pattern (Release|Packages(.gz)*)$      0       20%     2880'
+  - 'refresh_pattern .               0       20%     4320'
