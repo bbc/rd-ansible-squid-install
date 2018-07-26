@@ -1,4 +1,4 @@
-rd-ansible-squid-install
+rd-ansible-squid-install  [![Build Status](https://travis-ci.org/bbc/rd-ansible-squid-install.svg?branch=master)](https://travis-ci.org/bbc/rd-ansible-squid-install)
 =========
 
 This module installs a basic caching squid proxy. By default it allows all traffic on any local addresses and listens on 8080.
