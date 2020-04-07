@@ -1,14 +1,15 @@
 ### MANAGED BY {{ role_path|basename }} ANSIBLE ROLE ###
 
-# First set up our ACLs
+# First define our custom ACLs
 {% for key, value in combined_squid_acls.iteritems() %}
 {% for source in value.source %}
 acl {{ key }} {{ value.type }} {{ source }}
 {% endfor %}
 {% endfor %}
 
-# Then define what to do with these ACLs
-{% for key, value in combined_squid_acls.iteritems() %}
+# Then set the rules for these ACLs (processed in order)
+{# Pull out ordered entries first (with seq_number set) and sort by seq_number #}
+{% for key, value in combined_squid_acls.iteritems()|selectattr('1.seq_number', 'defined')|sort(attribute='1.seq_number') %}
 {% if value.directive is defined %}{{ value.directive }} {{ key }} {% if value.additional_directive_acl is defined %}{% for extra_directives in value.additional_directive_acl %}{{ extra_directives }}{% if not loop.last %} {% endif %}{% endfor %}{% endif %}{% endif %}
 
 {% if value.directives is defined %}
@@ -18,13 +19,23 @@ acl {{ key }} {{ value.type }} {{ source }}
 {% endif %}
 {% endfor %}
 
-# Then define the final directives without needing to create the ACL
-{% for directive in combined_squid_extra_acl_directive %}
-{{ directive.directive }} {% for acl in directive.acl %}{{ acl }}{% if not loop.last %} {% endif %}{% endfor %}
+{# Now add unordered entries (seq_number not defined) #}
+{% for key, value in combined_squid_acls.iteritems()|selectattr('1.seq_number', 'undefined') %}
+{% if value.directive is defined %}{{ value.directive }} {{ key }} {% if value.additional_directive_acl is defined %}{% for extra_directives in value.additional_directive_acl %}{{ extra_directives }}{% if not loop.last %} {% endif %}{% endfor %}{% endif %}{% endif %}
 
+{% if value.directives is defined %}
+{% for directive in value.directives %}
+{{ directive }} {{ key }}
+{% endfor %}
+{% endif %}
 {% endfor %}
 
-# Define listen ports
+# Then define the final rules for predefined ACLs
+{% for directive in squid_extra_acl_directives %}
+{{ directive }}
+{% endfor %}
+
+# Define listening ports
 {% for listen_address in squid_listen_addresses %}
 http_port {{ listen_address }}
 {% endfor %}

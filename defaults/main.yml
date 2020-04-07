@@ -31,10 +31,11 @@ squid_config_lines:
 
 # Squid ACLS - This is a list of ACLs and default directives ( allow or deny ) for those ACLs
 squid_acls:
-    localnet:
-        source: [ "172.16.0.0/12", "10.0.0.0/8", "192.168.0.0/16" ]
-        type: src
-        directive: "http_access allow"
+  localnet:
+    source: [ "172.16.0.0/12", "10.0.0.0/8", "192.168.0.0/16" ]
+    type: src
+    directive: "http_access allow"
+    seq_number: 100
 
 #squid_acls: {} # These are designed to be passed in as required
 # Assuming the following config:
@@ -44,62 +45,48 @@ squid_acls:
 #        type: port
 #        directive: "http_access allow"
 #        additional_directive_acl: [ "!SSL_ports" ]
+#        seq_number: 100
 #
-# Would generate the config
+# Would generate the config to define "safe_ports" as:
 #
 # acl safe_ports port 80
 # acl safe_ports port 21
 #
-# and then using the directive config
+# and then using the optional directive entry (ordered by seq_number)
 #
 # http_access allow safe_ports
 #
-# additional_directive_acl is not required but anything in the list additional_directive_acl, would be appended to the end of the directive as follows:
+# additional_directive_acl is not required but any other ACLs in this list would be appended to the end of the directive
+# and require all the ACLs to be matched before the rule is applied:
 #
 # http_access allow safe_ports !SSL_ports
 #
 
 squid_default_acls:
+  ssl_ports:
+    source: [ 443 ]
+    type: port
   safe_ports:
-    source: [ 80,21,443,70,210,"1025-65535",280,488,591,777 ]
+    source: [ 80,21,443,"1025-65535" ]
     type: port
     directive: "http_access allow"
+    seq_number: 200
   CONNECT:
     type: method
     source: [ CONNECT ]
     directive: "http_access deny"
     additional_directive_acl: [ "!SSL_ports" ]
-  ssl_ports:
-    source: [ 443 ]
-    type: port
+    seq_number: 300
 
 # Take the default ACL and mix with our defined ACL
 combined_squid_acls: "{{ squid_acls | combine(squid_default_acls) }}"
 
-# These are ACLs which likely already exist and are simply a way of specifying a directive without the need to create the ACL
-
-squid_extra_acl_directive:
-    - acl: [ localhost ]
-      directive: "http_access allow"
-
-#squid_extra_acl_directive: [] # These are designed to be passed in as required AND ARE ORDER SENSITIVE!
-
-# Assuming the following config:
-# squid_extra_acl_directive:
-#     - acl: [ manager, localhost ]
-#       directive: "http_access allow"
-#
-# Would generate the config
-#http_access allow localhost manager
-
-squid_default_extra_acl_directive:
-  - acl: [ manager, localhost ]
-    directive: "http_access allow"
-  - acl: [ all ]
-    directive: "http_access deny"
-
-# Take the default and combine with our extra defined
-combined_squid_extra_acl_directive: "{{ squid_extra_acl_directive + squid_default_extra_acl_directive }}"
+# These are directives using predefined ACLs inserted after the above ACLs.
+# These are passed in verbatim AND ARE ORDER SENSITIVE!
+squid_extra_acl_directives:
+    - "http_access allow localhost"
+    - "http_access allow manager localhost"
+    - "http_access deny all"
 
 # Default lines appended to end of squid config
 squid_default_config_lines:
