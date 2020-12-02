@@ -6,6 +6,8 @@
   template:
     src: squid.conf.j2
     dest: "{{ squid_path }}"
+    owner: root
+    mode: 0644
   notify: restart_squid
 
 - name: Flush handlers so we can make sure Squid is enabled
