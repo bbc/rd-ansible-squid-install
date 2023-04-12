@@ -29,8 +29,6 @@
 
 - name: Wait for squid startup
   command: curl "http://127.0.0.1:{{ squid_http_port }}"
-  args:
-    warn: no
   register:
     squid_test
   until: squid_test.stderr.find('Connection refused') == -1

@@ -15,6 +15,4 @@
 
 - name: Enable Squid - using command since the service and systemd command appear to not work correctly
   command: systemctl enable squid
-  args:
-    warn: false
   changed_when: false
