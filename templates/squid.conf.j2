@@ -1,5 +1,10 @@
 ### MANAGED BY {{ role_path|basename }} ANSIBLE ROLE ###
 
+## Default initial configuration lines that we want at the start of the file
+{% for line in squid_initial_config_lines %}
+{{ line }}
+{% endfor %}
+
 # First define our custom ACLs
 {% for key, value in combined_squid_acls.items() %}
 {% for source in value.source %}

@@ -100,3 +100,14 @@ squid_default_config_lines:
   - 'refresh_pattern -i (/cgi-bin/|\?) 0     0%      0'
   - 'refresh_pattern (Release|Packages(.gz)*)$      0       20%     2880'
   - 'refresh_pattern .               0       20%     4320'
+
+squid_auth_digests: []
+#  - name: admin
+#    realm: "Squid"
+#    digest: <create with htdigest command>
+
+squid_digest_path: "/etc/squid/passwd_digest"
+
+# Extra config lines at the very start of the squid config file
+# These might be requried to make other ACLs valid, such as auth directives
+squid_initial_config_lines: []
